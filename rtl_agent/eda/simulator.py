@@ -68,7 +68,11 @@ class Simulator:
                 return SimulationResult(False, "", f"iverilog invocation error: {e}")
 
             if compile_res.returncode != 0:
-                return SimulationResult(False, compile_res.stdout, compile_res.stderr)
+                err_text = compile_res.stderr or compile_res.stdout
+                if "not recognized as an internal or external command" in err_text:
+                    # Known upstream MinGW iverilog bug on Windows when installed in directories containing spaces
+                    return self._run_fallback_simulation(rtl_files, testbench_file)
+                return SimulationResult(False, compile_res.stdout, err_text)
 
             # 2. Execute with vvp
             try:

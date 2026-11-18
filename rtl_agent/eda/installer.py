@@ -17,34 +17,50 @@ TOOLS_DIR = Path(__file__).resolve().parent.parent.parent / "tools"
 OSS_CAD_SUITE_REPO = "YosysHQ/oss-cad-suite-build"
 IVERILOG_WINDOWS_URL = "https://github.com/steveicarus/iverilog/releases"
 
+# Auto-configure PATH with OSS CAD Suite bin and lib if present
+_oss_bin = TOOLS_DIR / "oss-cad-suite" / "bin"
+_oss_lib = TOOLS_DIR / "oss-cad-suite" / "lib"
+if _oss_bin.exists():
+    _cur_path = os.environ.get("PATH", "")
+    os.environ["PATH"] = f"{_oss_bin.resolve()};{_oss_lib.resolve()};{_cur_path}"
+
+def _test_executable(path_str: str) -> bool:
+    try:
+        res = subprocess.run([path_str, "-V"], capture_output=True, text=True, timeout=5)
+        # Check if it ran without path-with-spaces failure
+        out = (res.stdout or "") + (res.stderr or "")
+        if "not recognized as an internal or external command" in out:
+            return False
+        return res.returncode == 0 or len(res.stdout.strip()) > 0
+    except Exception:
+        return False
+
 def get_installed_tool(tool_name: str, custom_path: str = "") -> str:
-    """Find a tool executable either from custom_path, tools/ directory, or PATH."""
-    if custom_path and os.path.isfile(custom_path):
+    """Find a verified tool executable either from custom_path, tools/ directory, or PATH."""
+    if custom_path and os.path.isfile(custom_path) and _test_executable(custom_path):
         return str(Path(custom_path).resolve())
+
+    # Check aliases first e.g. yowasp-yosys for yosys (immune to DLL and space issues)
+    if tool_name == "yosys":
+        yowasp = shutil.which("yowasp-yosys") or shutil.which("yowasp-yosys.exe")
+        if yowasp and _test_executable(yowasp):
+            return str(Path(yowasp).resolve())
+
+    # Check system PATH
+    found = shutil.which(tool_name)
+    if found and _test_executable(found):
+        return str(Path(found).resolve())
 
     # Check tools/ directory
     local_candidates = [
         TOOLS_DIR / f"{tool_name}.exe",
-        TOOLS_DIR / tool_name,
-        TOOLS_DIR / "bin" / f"{tool_name}.exe",
         TOOLS_DIR / "oss-cad-suite" / "bin" / f"{tool_name}.exe",
+        TOOLS_DIR / "bin" / f"{tool_name}.exe",
         TOOLS_DIR / "iverilog" / "bin" / f"{tool_name}.exe",
-        TOOLS_DIR / "iverilog" / "bin" / tool_name,
     ]
     for cand in local_candidates:
-        if cand.is_file():
+        if cand.is_file() and _test_executable(str(cand)):
             return str(cand.resolve())
-
-    # Check system PATH
-    found = shutil.which(tool_name)
-    if found:
-        return str(Path(found).resolve())
-
-    # Check aliases e.g. yowasp-yosys for yosys
-    if tool_name == "yosys":
-        yowasp = shutil.which("yowasp-yosys") or shutil.which("yowasp-yosys.exe")
-        if yowasp:
-            return str(Path(yowasp).resolve())
 
     return ""
 
