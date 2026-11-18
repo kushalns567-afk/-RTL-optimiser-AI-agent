@@ -1,0 +1,29 @@
+# RTL Optimizer Agent Configuration
+
+agent:
+  name: "RTL-Optimizer-Agent"
+  version: "1.0.0"
+  default_strategy: "balanced"  # Options: area, timing, power, balanced
+  max_iterations: 3
+  auto_formal_verify: true
+
+eda_tools:
+  yosys_path: ""           # Leave empty for PATH lookup or auto-detected in tools/
+  iverilog_path: ""        # Leave empty for PATH lookup or auto-detected in tools/
+  vvp_path: ""
+  tools_dir: "tools"       # Local portable tools directory
+  target_technology: "generic" # Options: generic, cmos, sky130, ice40
+
+llm:
+  provider: "gemini"       # Options: gemini, openai, anthropic, ollama, heuristic_only
+  model: "gemini-1.5-pro"  # Default model
+  temperature: 0.2
+  api_key_env_var: "GEMINI_API_KEY"
+
+rules:
+  detect_latches: true
+  suggest_pipelining: true
+  resource_sharing: true
+  strength_reduction: true
+  fsm_reencoding: true
+  clock_gating_hints: true

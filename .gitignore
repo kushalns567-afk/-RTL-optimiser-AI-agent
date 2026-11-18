@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+env/
+venv/
+
+# Temporary run artifacts
+.rtl_agent_tmp/
+*.vcd
+*.vvp
+
+# EDA Tools directory (downloaded portable binaries)
+tools/
